@@ -18,14 +18,19 @@ from ssd.utils.checkpoint import CheckPointer
 
 
 @torch.no_grad()
-def run_demo(cfg, ckpt, score_threshold, images_dir, output_dir, dataset_type):
+def run_demo(cfg, ckpt, score_threshold, images_dir, output_dir, dataset_type, processor):
     if dataset_type == "voc":
         class_names = VOCDataset.class_names
     elif dataset_type == 'coco':
         class_names = COCODataset.class_names
     else:
         raise NotImplementedError('Not implemented now.')
-    device = torch.device(cfg.MODEL.DEVICE)
+
+    if processor == 'gpu':
+        device = torch.device(cfg.MODEL.DEVICE)
+    else:
+        device = torch.device("cpu")
+
 
     model = build_detection_model(cfg)
     model = model.to(device)
@@ -35,6 +40,8 @@ def run_demo(cfg, ckpt, score_threshold, images_dir, output_dir, dataset_type):
     print('Loaded weights from {}'.format(weight_file))
 
     image_paths = glob.glob(os.path.join(images_dir, '*.jpg'))
+    image_paths = glob.glob(os.path.join(images_dir, '*.png'))
+
     mkdir(output_dir)
 
     cpu_device = torch.device("cpu")
@@ -88,6 +95,7 @@ def main():
     parser.add_argument("--images_dir", default='demo', type=str, help='Specify a image dir to do prediction.')
     parser.add_argument("--output_dir", default='demo/result', type=str, help='Specify a image dir to save predicted images.')
     parser.add_argument("--dataset_type", default="voc", type=str, help='Specify dataset type. Currently support voc and coco.')
+    parser.add_argument("--processor", default="gpu", type=str, help='Specify to use gpu or cpu.')
 
     parser.add_argument(
         "opts",
@@ -113,7 +121,8 @@ def main():
              score_threshold=args.score_threshold,
              images_dir=args.images_dir,
              output_dir=args.output_dir,
-             dataset_type=args.dataset_type)
+             dataset_type=args.dataset_type,
+             processor=args.processor)
 
 
 if __name__ == '__main__':
